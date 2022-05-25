@@ -4,29 +4,29 @@ import pandas as pd # pip install pandas
 import numpy as np  # pip install numpy
 
 
-# Get data
 def get_data(ticker):
-    """Gets the data using OHLCV"""
+    """Gets the data from OHLCV candles."""
 
     exchange = ccxt.coinbasepro()
     timeframe = 5 # in minutes
+    limit = 100
 
     response = exchange.fetch_ohlcv(ticker, timeframe=f'{timeframe}m', limit=100)
 
     if response is not None:
         ticker_df = pd.DataFrame(response[:-1], columns=['timestamp', 'open', 'high', 'low', 'closing', 'vol'])
-        ticker_df['date'] = pd.to_datetime(ticker_df['at'], unit='ms')
+        ticker_df['date'] = pd.to_datetime(ticker_df['timestamp'], unit='ms')
         ticker_df['symbol'] = ticker
 
-    print(ticker_df)
     return ticker_df
 
 
-def main(ticker_ccxt):
+def main(ticker):
     """Main bot script."""
 
-    ticker_data = get_data(ticker_ccxt)
+    ticker_data = get_data(ticker)
 
+    print(ticker_data)
     return ticker_data
 
 
