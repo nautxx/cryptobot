@@ -41,6 +41,7 @@ def trading_strategy(ticker_data):
         if macd_crossover:
             macd_verdict = "BUY" if last_macdhist > 0 else "SELL"
 
+    # If MACD determines a BUY or a SELL than check using RSI.
     if macd_conclusion != "WAIT":
         # RSI = 100 – [100 / ( 1 + (Mean Upward Price Change / Mean Downward Price Change))]
         rsi = talib.RSI(ticker_data['closing'], timeperiod=14)
