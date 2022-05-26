@@ -3,11 +3,12 @@ from datetime import datetime
 from distutils.util import execute
 import pandas as pd # pip install pandas
 import numpy as np  # pip install numpy
+import plotly.graph_objects as go   # pip install plotly
 from dotenv import load_dotenv  # pip install python-dotenv
 import os
 import time
 
-import ccxt
+import ccxt # pip install ccxt
 import talib    # pip install TA-Lib
 import cbpro    # pip install cbpro
 import base64
@@ -133,9 +134,37 @@ def execute_trade(ticker, trade_strategy):
 
 def cancel_order(order_id):
     c.cancel_order(order_id=order_id)
+    return
 
 
-def main(ticker, function):
+def plot_data(ticker):
+    """Plots the ticker data in"""
+
+    # get the ticker data
+    ticker_data = get_data(ticker)
+    ticker_data['20 sma'] = ticker_data['close'].rolling(20).mean()
+
+    # make the charts
+    candlestick = go.Candlestick(
+        x = ticker_data.index, 
+        open = ticker_data['open'],
+        high = ticker_data['high'],
+        low = ticker_data['low'],
+        close = ticker_data['close'],
+    )
+
+    scatter = go.Scatter(
+        x = ticker_data.index, 
+        y = ticker_data['20 sma'], 
+        line = dict(color='mediumaquamarine', width=1)
+    )
+
+    fig = go.Figure(data=[candlestick, scatter])
+
+    fig.show()
+
+
+def main(ticker):
     """Main bot script."""
 
     date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -164,10 +193,13 @@ if __name__ == '__main__':
     parser.add_argument("--version", "-v", action='version', version='%(prog)s v0.0.9')
     parser.add_argument("--ticker", "-t", help="Cryptocurrency ticker symbol.", default="BTC-USDC")
     parser.add_argument("--cancel", "-x", help="Cancel orders.", default=False)
+    parser.add_argument("--graph", "-plot", "-xy", help="Plot candlestick interactive chart.", default=False)
     args = parser.parse_args()
+
 
     if args.cancel:
         pass
-    
+    if args.graph:
+        plot_data(args.ticker)
     else:
         main(args.ticker)
