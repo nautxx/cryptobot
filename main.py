@@ -1,6 +1,5 @@
 import argparse
 from datetime import datetime
-from distutils.util import execute
 import pandas as pd # pip install pandas
 import numpy as np  # pip install numpy
 import plotly.graph_objects as go   # pip install plotly
@@ -183,6 +182,7 @@ if __name__ == '__main__':
     parser.add_argument("--ticker", "-t", help="Cryptocurrency ticker symbol.", default="BTC-USDC")
     parser.add_argument("--cancel", "-x", help="Cancel orders.", default=False)
     parser.add_argument("--graph", "-plot", "-xy", help="Plot candlestick interactive chart.", default=False)
+    parser.add_argument("--investment", "-$", help="Investment amount.", default=10)
     args = parser.parse_args()
 
 
