@@ -14,6 +14,8 @@ import base64
 import json
 
 
+DELAY = 5   # in minutes
+
 # initialize APIs
 API_KEY = os.environ.get("CBPRO_API_KEY")
 SECRET = os.environ.get("CBPRO_SECRET")
@@ -21,19 +23,15 @@ PASSPHRASE = os.environ.get("CBPRO_PASSPHRASE")
 
 encoded = json.dumps(SECRET).encode()
 b64_secret = base64.b64encode(encoded)
+
 auth_client = cbpro.AuthenticatedClient(key=API_KEY, b64secret=b64_secret, passphrase=PASSPHRASE)
 c = cbpro.PublicClient()
-
+exchange = ccxt.coinbasepro()
 
 def get_data(ticker):
     """Gets the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
-    exchange = ccxt.coinbasepro()
-
-    timeframe = 5 # in minutes
-    limit = 100
-
-    data = exchange.fetch_ohlcv(ticker, timeframe=f"{timeframe}m", limit=100)
+    data = exchange.fetch_ohlcv(ticker, timeframe=f"{DELAY}m", limit=100)
     ticker_df = pd.DataFrame(data, columns=["date", "open", "high", "low", "close", "vol"])
     ticker_df["date"] = pd.to_datetime(ticker_df["date"], unit="ms")
     ticker_df["symbol"] = ticker
@@ -92,7 +90,6 @@ def trading_strategy(ticker_data):
 
 def execute_trade(ticker, trade_strategy):
     """Takes the recommended strategy of a BUY or a SELL and executes trade with Coinbase Pro."""
-    global c, auth_client
 
     investment = 10 # usd
     holding_qty = 0
@@ -113,8 +110,9 @@ def execute_trade(ticker, trade_strategy):
         order_response = auth_client.place_limit_order(product_id=ticker, side=side, price=current_price, size=order_size)
 
         try:
-            check = order['id']
+            check = order_response['id']
             check_order = auth_client.get_order(order_id=check)
+
         except Exception as e:
             print(f"Unable to check order. It might be rejected. {e}")
 
@@ -133,22 +131,29 @@ def execute_trade(ticker, trade_strategy):
     return order_success
 
 
-def main(ticker):
+def cancel_order(order_id):
+    c.cancel_order(order_id=order_id)
+
+
+def main(ticker, function):
     """Main bot script."""
 
     date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-    # holding = False
-    # # while 1: # make infinite loop
-    ticker_data = get_data(ticker)
+    holding = False
+    while 1: # create infinite loop
+        ticker_data = get_data(ticker)
 
-    trade_strategy = trading_strategy(ticker_data)
-    #     print(f"{date_and_time_now} TRADING RECOMMENDATION: {trade_strategy}")
+        trade_strategy = trading_strategy(ticker_data)
+        print(f"{date_and_time_now} Trade Strategy: {trade_strategy}")
 
-    #     if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
-    #         print(f"Placing {trade_strategy} order...")
-    
-    print(execute_trade(ticker, trade_strategy))
+        if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
+            print(f"Placing {trade_strategy} order...")
+        
+            trade_success = execute_trade(ticker, trade_strategy)
+            holding = not holding if trade_success else holding
+
+        time.sleep(DELAY * 60)
 
 
 if __name__ == '__main__':
@@ -156,9 +161,13 @@ if __name__ == '__main__':
         prog='CryptoBot',
         description='A simple python bot to buy and sell btc using a very simple buy and sell strategy.'
     )
-    parser.add_argument("--version", "-v", action='version', version='%(prog)s v0.0.5')
+    parser.add_argument("--version", "-v", action='version', version='%(prog)s v0.0.9')
     parser.add_argument("--ticker", "-t", help="Cryptocurrency ticker symbol.", default="BTC-USDC")
+    parser.add_argument("--cancel", "-x", help="Cancel orders.", default=False)
     args = parser.parse_args()
 
-
-    main(args.ticker)
+    if args.cancel:
+        pass
+    
+    else:
+        main(args.ticker)
