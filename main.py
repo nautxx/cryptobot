@@ -59,6 +59,14 @@ def trading_strategy(ticker_data):
 
     if strat.macd_indicator(ticker_data) != "WAIT":
         strat.overall_strategy = strat.rsi_indicator(ticker_data, user.oversold_threshold, user.overbought_threshold)
+   
+    # older_ticker_data = get_current_data(user.ticker)
+    # print(older_ticker_data)
+    # time.sleep(5 * 60)
+    # current_ticker_data = get_current_data(user.ticker)
+    # print(current_ticker_data)
+
+    # strat.overall_strategy = strat.percent_indicator(older_ticker_data, current_ticker_data, 5)
 
     return strat.overall_strategy
 
