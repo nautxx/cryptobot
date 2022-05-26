@@ -29,6 +29,7 @@ auth_client = cbpro.AuthenticatedClient(key=API_KEY, b64secret=b64_secret, passp
 c = cbpro.PublicClient()
 exchange = ccxt.coinbasepro()
 
+
 def get_data(ticker):
     """Gets the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
@@ -36,12 +37,6 @@ def get_data(ticker):
     ticker_df = pd.DataFrame(data, columns=["date", "open", "high", "low", "close", "vol"])
     ticker_df["date"] = pd.to_datetime(ticker_df["date"], unit="ms")
     ticker_df["symbol"] = ticker
-
-    # c = cbpro.PublicClient()
-
-    # ticker_df = pd.DataFrame(c.get_product_ticker_rates(product_id=ticker), columns=["date","open","high","low","close","vol"])
-    # ticker_df['date'] = pd.to_datetime(ticker_df['date'], unit='s')
-    # ticker_df['symbol'] = ticker
 
     return ticker_df
 
@@ -79,12 +74,6 @@ def trading_strategy(ticker_data):
 
         if (last_rsi_values.max() >= 70):
             macd_and_rsi_conclusion = "SELL"
-
-    # print(macd, macdsignal, macdhist)
-    # print("Last MACD:",last_macdhist)
-    # print("Previous MACD:", prev_macdhist)
-    # print("RSI:", rsi)
-    # print("LAST3 RSI:", last_rsi_values)
 
     return macd_and_rsi_conclusion
 
