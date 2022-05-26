@@ -1,21 +1,19 @@
 import argparse
 from datetime import datetime
 import pandas as pd # pip install pandas
-import numpy as np  # pip install numpy
 import plotly.graph_objects as go   # pip install plotly
 from dotenv import load_dotenv  # pip install python-dotenv
 import os
 import time
+import logging
 from user import User
+from strategy import *
 
 import ccxt # pip install ccxt
-import talib    # pip install TA-Lib
 import cbpro    # pip install cbpro
 import base64
 import json
 
-
-DELAY = 5   # in minutes
 
 # initialize APIs and objects
 API_KEY = os.environ.get("CBPRO_API_KEY")
@@ -29,11 +27,13 @@ auth_client = cbpro.AuthenticatedClient(key=API_KEY, b64secret=b64_secret, passp
 cbpro_client = cbpro.PublicClient()
 ccxt_exchange = ccxt.coinbasepro()
 
+# log for debugging
+logging.basicConfig(filename="cryptobot.log", format='%(asctime)s %(message)s', filemode='w', level=logging.DEBUG)
 
 def get_data(ticker):
     """Gets the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
-    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{DELAY}m", limit=100)
+    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=100)
     ticker_df = pd.DataFrame(data, columns=["date", "open", "high", "low", "close", "vol"])
     ticker_df["date"] = pd.to_datetime(ticker_df["date"], unit="ms")
     ticker_df["symbol"] = ticker
@@ -44,44 +44,15 @@ def get_data(ticker):
 
 
 def trading_strategy(ticker_data):
-    """Basic trading algorithm using Moving Average Convergence/Divergence and Relative Strength Index."""
+    """The trading logic using any desired combination of functions in strategy.py"""
 
-    macd_conclusion = "WAIT"
-    macd_and_rsi_conclusion = "WAIT"
+    # initialize strategy object.
+    strat = Strategy()
 
-    # Get MACD data
-    macd, macdsignal, macdhist = talib.MACD(ticker_data["close"], fastperiod=12, slowperiod=26, signalperiod=9)
-    
-    last_macdhist = macdhist.iloc[-1]
-    prev_macdhist = macdhist.iloc[-2]
+    if strat.macd_indicator(ticker_data) != "WAIT":
+        strat.overall_strategy = strat.rsi_indicator(ticker_data, user.oversold_threshold, user.overbought_threshold)
 
-    macdhist.to_csv("data_macd.csv")
-
-    if not np.isnan(prev_macdhist) and not np.isnan(last_macdhist):
-        # A crossover is occuring if MACD history values change from positive to negative or vice versa.
-        macd_crossover = (abs(last_macdhist + prev_macdhist)) != (abs(last_macdhist) + abs(prev_macdhist))
-
-        if macd_crossover:
-            macd_verdict = "BUY" if last_macdhist > 0 else "SELL"
-
-    # If MACD determines a BUY or a SELL than check using RSI.
-    if macd_conclusion != "WAIT":
-        # RSI = 100 – [100 / ( 1 + (Mean Upward Price Change / Mean Downward Price Change))]
-        rsi = talib.RSI(ticker_data["close"], timeperiod=14)
-
-        rsi.to_csv("data_rsi.csv")
-
-        # Use last 3 RSI values
-        last_rsi_values = rsi.iloc[-3:]
-
-        # RSI is considered overbought when above 70 and oversold when below 30.
-        if (last_rsi_values.min() <= 30):
-            macd_and_rsi_conclusion = "BUY"
-
-        if (last_rsi_values.max() >= 70):
-            macd_and_rsi_conclusion = "SELL"
-
-    return macd_and_rsi_conclusion
+    return strat.overall_strategy
 
 
 def execute_trade(ticker, trade_strategy, investment, holding_qty):
@@ -91,35 +62,37 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
     side = "buy" if (trade_strategy == "BUY") else "sell"
 
     try:
-        current_ticker_info_response = c.get_product_ticker(product_id=ticker)
+        current_ticker_info_response = cbpro_client.get_product_ticker(product_id=ticker)
 
         current_price = float(current_ticker_info_response["price"])
 
         order_size = round(investment / current_price, 5) if trade_strategy == "BUY" else holding_qty
 
-        print(f"Placing order {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}: "
-                f"{ticker}, {side}, {current_price}, {order_size}, {int(time.time() * 1000)} ")
+        print(f"🤖: Placing order {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}: "
+            f"{ticker}, {side}, {current_price}, {order_size}, {int(time.time() * 1000)}"
+        )
 
         order_response = auth_client.place_limit_order(product_id=ticker, side=side, price=current_price, size=order_size)
 
         try:
             check = order_response["id"]
+            log.info(check)
             check_order = auth_client.get_order(order_id=check)
 
         except Exception as e:
-            print(f"Unable to check order. It might be rejected. {e}")
+            print(f"🤖: Unable to check order. It might be rejected. {e}")
 
         if check_order["status"] == "done":
-            print("Order has been placed successfully!")
+            print("🤖: Order has been placed successfully BOOPboopboop!")
             print(check_order)
             holding_qty = order_size if trade_strategy == "BUY" else holding_qty
             order_success = True
 
         else:
-            print("Order was not matched.")
+            print("🤖: Order was not matched.")
 
     except:
-        print(f"\nOops. Something went wrong. Unable to place order.")
+        print(f"\n🤖: Boooops. Something went wrong. Unable to place order.")
 
     return order_success
 
@@ -164,38 +137,49 @@ def main():
     holding = False
     while 1: # create infinite loop
         ticker_data = get_data(user.ticker)
-
         trade_strategy = trading_strategy(ticker_data)
 
-        date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        print(f"{date_and_time_now} Trade Strategy: {trade_strategy}")
+        date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")    # get and use date_and_time_now at time of message
+        print(f"{date_and_time_now} 🤖: Beep Bop Boop {trade_strategy}.")
 
         if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
-            print(f"Placing {trade_strategy} order...")
+            print(f"🤖: Attempting to place {trade_strategy} order BOOOOOP...")
         
             trade_success = execute_trade(user.ticker, trade_strategy, user.investment, user.holding_qty)
             holding = not holding if trade_success else holding
 
-        time.sleep(DELAY * 60)
+        time.sleep(user.delay * 60)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        prog="Cryptobot",
-        description="A simple python bot to buy and sell btc using a very simple buy and sell strategy."
+        prog="🤖cryptobot by naut 2022",
+        description="A python bot to buy and sell cryptocurrency using a basic buy and sell strategy.",
+        epilog="Enjoy but please run at your own risk."
     )
     parser.add_argument("--version", "-v", action="version", version="%(prog)s v0.1.0")
-    parser.add_argument("--ticker", "-t", help="Cryptocurrency ticker symbol.", default="BTC-USDC")
-    parser.add_argument("--cancel", "-x", help="Cancel orders.", default=False)
-    parser.add_argument("--graph", "-plot", "-xy", help="Plot candlestick interactive chart.", default=False)
-    parser.add_argument("--investment", "-usd", "-$", help="Investment amount.", default=10)
+    parser.add_argument("--ticker", "-t", help="cryptocurrency ticker symbol. default=BTC-USDC", default="BTC-USDC", type=str)
+    parser.add_argument("--cancel", "-x", help="cancel orders.", action="store_true")
+    parser.add_argument("--graph", "-plot", "-xy", help="plot a candlestick interactive chart.", action="store_true")
+    parser.add_argument("--investment", "-usd", "-$", help="investment amount. default=10", default=10, type=int)
+    parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
+    parser.add_argument("--oversold", "-os", help="rsi oversold threshold.", default=None, type=int)
+    parser.add_argument("--overbought", "-ob", help="rsi overbought threshold.", default=None, type=int)
     args = parser.parse_args()
 
-    user = User(args.ticker, args.investment)
+
+    # Initialize user settings
+    user = User(
+        ticker=args.ticker, 
+        investment=args.investment, 
+        rsi_oversold=args.oversold, 
+        rsi_overbought=args.overbought, 
+        delay=args.delay
+    )
 
     if args.cancel:
         pass
     if args.graph:
-        plot_data(user.ticker)
+        plot_data(args.ticker)
     else:
         main()
