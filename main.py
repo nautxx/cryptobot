@@ -26,17 +26,18 @@ encoded = json.dumps(SECRET).encode()
 b64_secret = base64.b64encode(encoded)
 
 auth_client = cbpro.AuthenticatedClient(key=API_KEY, b64secret=b64_secret, passphrase=PASSPHRASE)
-c = cbpro.PublicClient()
-exchange = ccxt.coinbasepro()
+cbpro_client = cbpro.PublicClient()
+ccxt_exchange = ccxt.coinbasepro()
 
 
 def get_data(ticker):
     """Gets the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
-    data = exchange.fetch_ohlcv(ticker, timeframe=f"{DELAY}m", limit=100)
+    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{DELAY}m", limit=100)
     ticker_df = pd.DataFrame(data, columns=["date", "open", "high", "low", "close", "vol"])
     ticker_df["date"] = pd.to_datetime(ticker_df["date"], unit="ms")
     ticker_df["symbol"] = ticker
+
     ticker_df.to_csv("data_ticker.csv")
 
     return ticker_df
@@ -124,7 +125,7 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
 
 
 def cancel_order(order_id):
-    c.cancel_order(order_id=order_id)
+    cbpro_client.cancel_order(order_id=order_id)
     return
 
 
@@ -142,29 +143,31 @@ def plot_data(ticker):
         high = ticker_data["high"],
         low = ticker_data["low"],
         close = ticker_data["close"],
+        name = f"{ticker}",
     )
 
-    scatter = go.Scatter(
+    line = go.Scatter(
         x = ticker_data.index, 
         y = ticker_data["20 sma"], 
-        line = dict(color="mediumaquamarine", width=1)
+        line = dict(color="blue", width=2),
+        name = f"20 SMA",
     )
 
-    fig = go.Figure(data=[candlestick, scatter])
-
+    fig = go.Figure(data=[candlestick, line])
+    fig.update_layout(title=f"{ticker} Candlestick Chart")
     fig.show()
 
 
 def main():
     """Main bot script."""
 
-    date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
     holding = False
     while 1: # create infinite loop
         ticker_data = get_data(user.ticker)
 
         trade_strategy = trading_strategy(ticker_data)
+
+        date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         print(f"{date_and_time_now} Trade Strategy: {trade_strategy}")
 
         if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
