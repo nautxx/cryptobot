@@ -15,7 +15,7 @@ You will need to obtain application credentials for
 After following the setup instructions, run the program:
 
 ```shell
-python3 main.py [-h] -t TICKER
+python3 main.py [-h]
 ```
 
 ## Arguments
