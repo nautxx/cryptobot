@@ -76,7 +76,7 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
 
         try:
             check = order_response["id"]
-            log.info(check)
+            logging.info(check)
             check_order = auth_client.get_order(order_id=check)
 
         except Exception as e:
