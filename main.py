@@ -11,6 +11,7 @@ from strategy import *
 
 import ccxt # pip install ccxt
 import cbpro    # pip install cbpro
+import talib    # pip install TA-Lib
 import base64
 import json
 
@@ -30,17 +31,24 @@ ccxt_exchange = ccxt.coinbasepro()
 # log for debugging
 logging.basicConfig(filename="cryptobot.log", format='%(asctime)s %(message)s', filemode='w', level=logging.DEBUG)
 
+
 def get_data(ticker):
     """Gets the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
     data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=100)
-    ticker_df = pd.DataFrame(data, columns=["date", "open", "high", "low", "close", "vol"])
-    ticker_df["date"] = pd.to_datetime(ticker_df["date"], unit="ms")
-    ticker_df["symbol"] = ticker
+    ticker_df = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'vol'])
+    ticker_df['date'] = pd.to_datetime(ticker_df['date'], unit="ms")
+    ticker_df['symbol'] = ticker
 
     ticker_df.to_csv("data_ticker.csv")
 
     return ticker_df
+
+def get_current_data(ticker):
+    """Gets the current ticker_data."""
+
+    ticker_data = cbpro_client.get_product_ticker(product_id=ticker)
+    return ticker_data
 
 
 def trading_strategy(ticker_data):
@@ -63,8 +71,15 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
 
     try:
         current_ticker_info_response = cbpro_client.get_product_ticker(product_id=ticker)
+    
+    except:
+        print(f"\n🤖: Boooops. Something went wrong. Unable to place order.")
 
-        current_price = float(current_ticker_info_response["price"])
+    try:
+        current_price = float(current_ticker_info_response['price'])
+    
+    except Exception as e:
+        print(f"🤖: Error obtaining ticker data. {e}")
 
         order_size = round(investment / current_price, 5) if trade_strategy == "BUY" else holding_qty
 
@@ -72,27 +87,28 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
             f"{ticker}, {side}, {current_price}, {order_size}, {int(time.time() * 1000)}"
         )
 
+    try:
         order_response = auth_client.place_limit_order(product_id=ticker, side=side, price=current_price, size=order_size)
 
-        try:
-            check = order_response["id"]
-            logging.info(check)
-            check_order = auth_client.get_order(order_id=check)
+    except Exception as e:
+        print(f"🤖: Error placing order. {e}")
 
-        except Exception as e:
-            print(f"🤖: Unable to check order. It might be rejected. {e}")
+    try:
+        check = order_response["id"]
+        logging.info(check)
+        check_order = auth_client.get_order(order_id=check)
 
-        if check_order["status"] == "done":
-            print("🤖: Order has been placed successfully BOOPboopboop!")
-            print(check_order)
-            holding_qty = order_size if trade_strategy == "BUY" else holding_qty
-            order_success = True
+    except Exception as e:
+        print(f"🤖: Unable to check order. {e}")
 
-        else:
-            print("🤖: Order was not matched.")
+    if check_order['status'] == "done":
+        print("🤖: Order has been placed successfully BOOPboopboop!")
+        print(check_order)
+        holding_qty = order_size if trade_strategy == "BUY" else holding_qty
+        order_success = True
 
-    except:
-        print(f"\n🤖: Boooops. Something went wrong. Unable to place order.")
+    else:
+        print("🤖: Order was not matched.")
 
     return order_success
 
@@ -107,23 +123,23 @@ def plot_data(ticker):
 
     # get the ticker data
     ticker_data = get_data(ticker)
-    ticker_data["20 sma"] = ticker_data["close"].rolling(20).mean()
+    ticker_data['20 sma'] = ticker_data['close'].rolling(20).mean()
 
     # make the charts
     candlestick = go.Candlestick(
         x = ticker_data.index, 
-        open = ticker_data["open"],
-        high = ticker_data["high"],
-        low = ticker_data["low"],
-        close = ticker_data["close"],
+        open = ticker_data['open'],
+        high = ticker_data['high'],
+        low = ticker_data['low'],
+        close = ticker_data['close'],
         name = f"{ticker}",
     )
 
     line = go.Scatter(
         x = ticker_data.index, 
-        y = ticker_data["20 sma"], 
+        y = ticker_data['20 sma'], 
         line = dict(color="blue", width=2),
-        name = f"20 SMA",
+        name = f"20 sma",
     )
 
     fig = go.Figure(data=[candlestick, line])
@@ -135,7 +151,7 @@ def main():
     """Main bot script."""
 
     holding = False
-    while 1: # create infinite loop
+    while True: # create infinite loop
         ticker_data = get_data(user.ticker)
         trade_strategy = trading_strategy(ticker_data)
 
