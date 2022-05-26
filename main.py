@@ -1,9 +1,11 @@
 import argparse
 from datetime import datetime
+from distutils.util import execute
 import pandas as pd # pip install pandas
 import numpy as np  # pip install numpy
 from dotenv import load_dotenv  # pip install python-dotenv
 import os
+import time
 
 import ccxt
 import talib    # pip install TA-Lib
@@ -12,7 +14,7 @@ import base64
 import json
 
 
-# initialize API
+# initialize APIs
 API_KEY = os.environ.get("CBPRO_API_KEY")
 SECRET = os.environ.get("CBPRO_SECRET")
 PASSPHRASE = os.environ.get("CBPRO_PASSPHRASE")
@@ -31,10 +33,10 @@ def get_data(ticker):
     timeframe = 5 # in minutes
     limit = 100
 
-    data = exchange.fetch_ohlcv(ticker, timeframe=f'{timeframe}m', limit=100)
-    ticker_df = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'vol'])
-    ticker_df['date'] = pd.to_datetime(ticker_df['date'], unit='ms')
-    ticker_df['symbol'] = ticker
+    data = exchange.fetch_ohlcv(ticker, timeframe=f"{timeframe}m", limit=100)
+    ticker_df = pd.DataFrame(data, columns=["date", "open", "high", "low", "close", "vol"])
+    ticker_df["date"] = pd.to_datetime(ticker_df["date"], unit="ms")
+    ticker_df["symbol"] = ticker
 
     # c = cbpro.PublicClient()
 
@@ -52,7 +54,7 @@ def trading_strategy(ticker_data):
     macd_and_rsi_conclusion = "WAIT"
 
     # Get MACD data
-    macd, macdsignal, macdhist = talib.MACD(ticker_data['close'], fastperiod=12, slowperiod=26, signalperiod=9)
+    macd, macdsignal, macdhist = talib.MACD(ticker_data["close"], fastperiod=12, slowperiod=26, signalperiod=9)
     
     last_macdhist = macdhist.iloc[-1]
     prev_macdhist = macdhist.iloc[-2]
@@ -67,7 +69,7 @@ def trading_strategy(ticker_data):
     # If MACD determines a BUY or a SELL than check using RSI.
     if macd_conclusion != "WAIT":
         # RSI = 100 – [100 / ( 1 + (Mean Upward Price Change / Mean Downward Price Change))]
-        rsi = talib.RSI(ticker_data['close'], timeperiod=14)
+        rsi = talib.RSI(ticker_data["close"], timeperiod=14)
 
         # Use last 3 RSI values
         last_rsi_values = rsi.iloc[-3:]
@@ -88,14 +90,65 @@ def trading_strategy(ticker_data):
     return macd_and_rsi_conclusion
 
 
+def execute_trade(ticker, trade_strategy):
+    """Takes the recommended strategy of a BUY or a SELL and executes trade with Coinbase Pro."""
+    global c, auth_client
+
+    investment = 10 # usd
+    holding_qty = 0
+
+    order_success = False
+    side = 'buy' if (trade_strategy == "BUY") else 'sell'
+
+    try:
+        current_ticker_info_response = c.get_product_ticker(product_id=ticker)
+
+        current_price = float(current_ticker_info_response["price"])
+
+        order_size = round(investment / current_price, 5) if trade_strategy == "BUY" else holding_qty
+
+        print(f"Placing order {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}: "
+                f"{ticker}, {side}, {current_price}, {order_size}, {int(time.time() * 1000)} ")
+
+        order_response = auth_client.place_limit_order(product_id=ticker, side=side, price=current_price, size=order_size)
+
+        try:
+            check = order['id']
+            check_order = auth_client.get_order(order_id=check)
+        except Exception as e:
+            print(f"Unable to check order. It might be rejected. {e}")
+
+        if check_order['status'] == 'done':
+            print('Order has been placed successfully!')
+            print(check_order)
+            holding_qty = order_size if trade_strategy == "BUY" else holding_qty
+            order_success = True
+
+        else:
+            print('Order was not matched.')
+
+    except:
+        print(f"\nOops. Something went wrong. Unable to place order.")
+
+    return order_success
+
+
 def main(ticker):
     """Main bot script."""
 
-    ticker_data = get_data(ticker)
-    print(ticker_data)
-    trade_strategy = trading_strategy(ticker_data)
     date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    print(f"{date_and_time_now} TRADING RECOMMENDATION: {trade_strategy}")
+
+    # holding = False
+    # # while 1: # make infinite loop
+    ticker_data = get_data(ticker)
+
+    trade_strategy = trading_strategy(ticker_data)
+    #     print(f"{date_and_time_now} TRADING RECOMMENDATION: {trade_strategy}")
+
+    #     if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
+    #         print(f"Placing {trade_strategy} order...")
+    
+    print(execute_trade(ticker, trade_strategy))
 
 
 if __name__ == '__main__':
@@ -103,7 +156,7 @@ if __name__ == '__main__':
         prog='CryptoBot',
         description='A simple python bot to buy and sell btc using a very simple buy and sell strategy.'
     )
-    parser.add_argument("--version", "-v", action='version', version='%(prog)s v0.0.1')
+    parser.add_argument("--version", "-v", action='version', version='%(prog)s v0.0.5')
     parser.add_argument("--ticker", "-t", help="Cryptocurrency ticker symbol.", default="BTC-USDC")
     args = parser.parse_args()
 
