@@ -1,5 +1,5 @@
 # cryptobot
- A simple trading bot using python.
+A simple python cryptocurrency trading bot.
 
 ## Environment
 
