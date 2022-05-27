@@ -172,12 +172,12 @@ if __name__ == '__main__':
     parser.add_argument("--version", "-v", action="version", version="%(prog)s v0.1.0")
     parser.add_argument("--ticker", "-t", help="cryptocurrency ticker symbol. default=BTC-USDC", default="BTC-USDC", type=str)
     parser.add_argument("--cancel", "-x", help="cancel orders.", action="store_true")
-    plot = subparser.add_parser('plot')
     parser.add_argument("--investment", "-usd", "-$", help="investment amount. default=10", default=10, type=int)
     parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
     parser.add_argument("--oversold", "-os", help="rsi oversold threshold.", default=None, type=int)
     parser.add_argument("--overbought", "-ob", help="rsi overbought threshold.", default=None, type=int)
 
+    plot = subparser.add_parser('plot')
     plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
     plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=20, type=int)
 
