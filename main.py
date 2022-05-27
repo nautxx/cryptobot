@@ -1,13 +1,13 @@
 import argparse
 from datetime import datetime
 import pandas as pd # pip install pandas
-import plotly.graph_objects as go   # pip install plotly
 from dotenv import load_dotenv  # pip install python-dotenv
 import os
 import time
 import logging
 from user import User
 from strategy import *
+from plots import *
 
 import ccxt # pip install ccxt
 import cbpro    # pip install cbpro
@@ -33,7 +33,7 @@ logging.basicConfig(filename="cryptobot.log", format='%(asctime)s %(message)s', 
 
 
 def get_data(ticker):
-    """Gets the data from OHLCV (Open, High, Low, Close, Volume) candles."""
+    """Uses CCXT to get the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
     data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=100)
     ticker_df = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'vol'])
@@ -44,8 +44,9 @@ def get_data(ticker):
 
     return ticker_df
 
+
 def get_current_data(ticker):
-    """Gets the current ticker_data."""
+    """Uses coinbasepro to get the current ticker information."""
 
     ticker_data = cbpro_client.get_product_ticker(product_id=ticker)
     return ticker_data
@@ -60,13 +61,13 @@ def trading_strategy(ticker_data):
     if strat.macd_indicator(ticker_data) != "WAIT":
         strat.overall_strategy = strat.rsi_indicator(ticker_data, user.oversold_threshold, user.overbought_threshold)
    
-    # older_ticker_data = get_current_data(user.ticker)
-    # print(older_ticker_data)
+    # oldest_ticker_data = get_current_data(user.ticker)
+    # print(old_ticker_data)
     # time.sleep(5 * 60)
-    # current_ticker_data = get_current_data(user.ticker)
-    # print(current_ticker_data)
+    # newest_ticker_data = get_current_data(user.ticker)
+    # print(newest_ticker_data)
 
-    # strat.overall_strategy = strat.percent_indicator(older_ticker_data, current_ticker_data, 5)
+    # strat.overall_strategy = strat.percent_indicator(oldest_ticker_data, newest_ticker_data)
 
     return strat.overall_strategy
 
@@ -126,36 +127,22 @@ def cancel_order(order_id):
     return
 
 
-def plot_data(ticker):
-    """Plots the ticker data."""
+def plot_bot():
+    """Main plot script."""
 
-    # get the ticker data
-    ticker_data = get_data(ticker)
-    ticker_data['20 sma'] = ticker_data['close'].rolling(20).mean()
+    # initialize Plots.
+    plot = Plots()
 
-    # make the charts
-    candlestick = go.Candlestick(
-        x = ticker_data.index, 
-        open = ticker_data['open'],
-        high = ticker_data['high'],
-        low = ticker_data['low'],
-        close = ticker_data['close'],
-        name = f"{ticker}",
-    )
+    # get ticker data
+    ticker_data = get_data(args.ticker)
 
-    line = go.Scatter(
-        x = ticker_data.index, 
-        y = ticker_data['20 sma'], 
-        line = dict(color="blue", width=2),
-        name = f"20 sma",
-    )
-
-    fig = go.Figure(data=[candlestick, line])
-    fig.update_layout(title=f"{ticker} Candlestick Chart")
-    fig.show()
+    if args.candlestick:
+        plot.candlestick_sma(ticker_data, args.sma_period)
+    
+    return
 
 
-def main():
+def trade_bot():
     """Main bot script."""
 
     holding = False
@@ -181,14 +168,19 @@ if __name__ == '__main__':
         description="A python bot to buy and sell cryptocurrency using a basic buy and sell strategy.",
         epilog="Enjoy but please run at your own risk."
     )
+    subparser = parser.add_subparsers(dest='command')
     parser.add_argument("--version", "-v", action="version", version="%(prog)s v0.1.0")
     parser.add_argument("--ticker", "-t", help="cryptocurrency ticker symbol. default=BTC-USDC", default="BTC-USDC", type=str)
     parser.add_argument("--cancel", "-x", help="cancel orders.", action="store_true")
-    parser.add_argument("--graph", "-plot", "-xy", help="plot a candlestick interactive chart.", action="store_true")
+    plot = subparser.add_parser('plot')
     parser.add_argument("--investment", "-usd", "-$", help="investment amount. default=10", default=10, type=int)
     parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
     parser.add_argument("--oversold", "-os", help="rsi oversold threshold.", default=None, type=int)
     parser.add_argument("--overbought", "-ob", help="rsi overbought threshold.", default=None, type=int)
+
+    plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
+    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=20, type=int)
+
     args = parser.parse_args()
 
 
@@ -203,7 +195,9 @@ if __name__ == '__main__':
 
     if args.cancel:
         pass
-    if args.graph:
-        plot_data(args.ticker)
+    
+    if args.command == 'plot':
+        plot_bot()
+    
     else:
-        main()
+        trade_bot()
