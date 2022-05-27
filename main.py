@@ -35,7 +35,7 @@ logging.basicConfig(filename="cryptobot.log", format='%(asctime)s %(message)s', 
 def get_data(ticker):
     """Uses CCXT to get the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
-    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=100)
+    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=300)
     ticker_df = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'vol'])
     ticker_df['date'] = pd.to_datetime(ticker_df['date'], unit="ms")
     ticker_df['symbol'] = ticker
@@ -59,7 +59,7 @@ def trading_strategy(ticker_data):
     strat = Strategy()
 
     if strat.macd_indicator(ticker_data) != "WAIT":
-        strat.overall_strategy = strat.rsi_indicator(ticker_data, user.oversold_threshold, user.overbought_threshold)
+        strat.overall_strategy = strat.rsi_indicator(ticker_data, args.oversold_threshold, args.overbought_threshold)
    
     # oldest_ticker_data = get_current_data(user.ticker)
     # print(old_ticker_data)
@@ -188,8 +188,6 @@ if __name__ == '__main__':
     user = User(
         ticker=args.ticker, 
         investment=args.investment, 
-        rsi_oversold=args.oversold, 
-        rsi_overbought=args.overbought, 
         delay=args.delay
     )
 
