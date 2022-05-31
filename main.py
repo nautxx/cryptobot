@@ -130,7 +130,7 @@ def cancel_order(order_id):
 def plot_bot():
     """Main plot script."""
 
-    # initialize Plots.
+    # initialize Plot class.
     plot = Plots()
 
     # get ticker data
@@ -138,6 +138,8 @@ def plot_bot():
 
     if args.candlestick:
         plot.candlestick_sma(ticker_data, args.sma_period)
+    if args.line_sma:
+        plot.line_sma(ticker_data)
     
     return
 
@@ -162,6 +164,12 @@ def trade_bot():
         time.sleep(user.delay * 60)
 
 
+def backtest():
+    """Main testing script."""
+
+    pass
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog="🤖cryptobot by naut 2022",
@@ -180,6 +188,7 @@ if __name__ == '__main__':
     plot = subparser.add_parser('plot')
     plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
     plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=20, type=int)
+    plot.add_argument("--line_sma", "-line", action="store_true")
 
     args = parser.parse_args()
 
