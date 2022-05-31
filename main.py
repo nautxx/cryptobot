@@ -58,12 +58,13 @@ def trading_strategy(ticker_data):
     # initialize strategy object.
     strat = Strategy()
 
-    if args.macd_rsi:
-        strat.macd_rsi_strategy(ticker_data)
+    if args.mean_reversion:
+        strat.mean_reversion_strategy(ticker_data)
+    if args.mean_reversion_simple:
+        strat.simple_mean_reversion_strategy(ticker_data)
+    if args.basic:
+        strat.basic_strategy(ticker_data)
 
-    # if strat.macd_indicator(ticker_data) != "WAIT":
-    #     strat.overall_strategy = strat.rsi_indicator(ticker_data, args.oversold_threshold, args.overbought_threshold)
-   
     # oldest_ticker_data = get_current_data(user.ticker)
     # print(old_ticker_data)
     # time.sleep(5 * 60)
@@ -155,7 +156,7 @@ def trade_bot():
         ticker_data = get_data(user.ticker)
         trade_strategy = trading_strategy(ticker_data)
 
-        date_and_time_now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")    # get and use date_and_time_now at time of message
+        date_and_time_now = datetime.now().strftime("%m/%d/%Y %H:%M:%S")    # get and use date_and_time_now at time of message
         print(f"{date_and_time_now} 🤖: Beep Bop Boop {trade_strategy}.")
 
         if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
@@ -165,12 +166,6 @@ def trade_bot():
             holding = not holding if trade_success else holding
 
         time.sleep(user.delay * 60)
-
-
-def backtest():
-    """Main testing script."""
-
-    pass
 
 
 if __name__ == '__main__':
@@ -185,16 +180,16 @@ if __name__ == '__main__':
     parser.add_argument("--cancel", "-x", help="cancel orders.", action="store_true")
     parser.add_argument("--investment", "-usd", "-$", help="investment amount. default=10", default=10, type=int)
     parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
-    parser.add_argument("--oversold", "-os", help="rsi oversold threshold.", default=None, type=int)
-    parser.add_argument("--overbought", "-ob", help="rsi overbought threshold.", default=None, type=int)
 
     plot = subparser.add_parser('plot')
     plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
-    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=20, type=int)
+    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=26, type=int)
     plot.add_argument("--line_sma", "-line", action="store_true")
 
     strategy = subparser.add_parser('strat')
-    strategy.add_argument("--macd_rsi", action="store_true")
+    strategy.add_argument("--basic", "-bsc", action="store_true")
+    strategy.add_argument("--mean_reversion", "-mr", action="store_true")
+    strategy.add_argument("--mean_reversion_simple", "-mr_s", action="store_true")
 
     args = parser.parse_args()
 
@@ -208,9 +203,7 @@ if __name__ == '__main__':
 
     if args.cancel:
         pass
-    
     if args.command == 'plot':
         plot_bot()
-    
-    else:
+    if args.command == 'strat':
         trade_bot()
