@@ -8,6 +8,7 @@ import logging
 from user import User
 from strategy import *
 from plots import *
+from paper import Paper
 
 import ccxt # pip install ccxt
 import cbpro    # pip install cbpro
@@ -35,7 +36,7 @@ logging.basicConfig(filename="cryptobot.log", format='%(asctime)s %(message)s', 
 def get_data(ticker):
     """Uses CCXT to get the data from OHLCV (Open, High, Low, Close, Volume) candles."""
 
-    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=300)
+    data = ccxt_exchange.fetch_ohlcv(ticker, timeframe=f"{user.delay}m", limit=150)
     ticker_df = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'vol'])
     ticker_df['date'] = pd.to_datetime(ticker_df['date'], unit="ms")
     ticker_df['symbol'] = ticker
@@ -75,22 +76,20 @@ def trading_strategy(ticker_data):
 
     return strat.overall_strategy
 
-
+#TODO move away execute_trade function from main.py
 def execute_trade(ticker, trade_strategy, investment, holding_qty):
-    """Takes the recommended strategy of a BUY or a SELL and executes trade with Coinbase Pro."""
+    """Takes the recommended strategy of BUY or SELL and executes trade with Coinbase Pro."""
 
     order_success = False
     side = "buy" if (trade_strategy == "BUY") else "sell"
 
     try:
         current_ticker_info_response = cbpro_client.get_product_ticker(product_id=ticker)
-    
     except:
         print(f"\n🤖: Boooops. Something went wrong. Unable to place order.")
 
     try:
         current_price = float(current_ticker_info_response['price'])
-    
     except Exception as e:
         print(f"🤖: Error obtaining ticker data. {e}")
 
@@ -102,7 +101,6 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
 
     try:
         order_response = auth_client.place_limit_order(product_id=ticker, side=side, price=current_price, size=order_size)
-
     except Exception as e:
         print(f"🤖: Error placing order. {e}")
 
@@ -110,7 +108,6 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
         check = order_response["id"]
         logging.info(check)
         check_order = auth_client.get_order(order_id=check)
-
     except Exception as e:
         print(f"🤖: Unable to check order. {e}")
 
@@ -119,7 +116,6 @@ def execute_trade(ticker, trade_strategy, investment, holding_qty):
         print(check_order)
         holding_qty = order_size if trade_strategy == "BUY" else holding_qty
         order_success = True
-
     else:
         print("🤖: Order was not matched.")
 
@@ -161,8 +157,13 @@ def trade_bot():
 
         if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
             print(f"🤖: Attempting to place {trade_strategy} order BOOOOOP...")
-        
-            trade_success = execute_trade(user.ticker, trade_strategy, user.investment, user.holding_qty)
+
+            if args.paper:
+                paper = Paper(user.ticker, trade_strategy, user.investment, user.holding_qty)
+                trade_success = paper.paper_trade()
+            else:
+                trade_success = execute_trade(user.ticker, trade_strategy, user.investment, user.holding_qty)
+            
             holding = not holding if trade_success else holding
 
         time.sleep(user.delay * 60)
@@ -171,7 +172,7 @@ def trade_bot():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog="🤖cryptobot by naut 2022",
-        description="A python bot to buy and sell cryptocurrency using a basic buy and sell strategy.",
+        description="A python bot to buy and sell cryptocurrency using a few basic buy and sell strategies.",
         epilog="Enjoy but please run at your own risk."
     )
     subparser = parser.add_subparsers(dest='command')
@@ -180,11 +181,12 @@ if __name__ == '__main__':
     parser.add_argument("--cancel", "-x", help="cancel orders.", action="store_true")
     parser.add_argument("--investment", "-usd", "-$", help="investment amount. default=10", default=10, type=int)
     parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
+    parser.add_argument("--paper", "-p", action="store_true")
 
     plot = subparser.add_parser('plot')
     plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
-    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=26, type=int)
     plot.add_argument("--line_sma", "-line", help="plot line x sma x signal interactive chart.", action="store_true")
+    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=26, type=int)
 
     strategy = subparser.add_parser('strat')
     strategy.add_argument("--basic", "-bsc", action="store_true")
