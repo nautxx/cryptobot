@@ -36,35 +36,41 @@ class Plots:
     
     def line_sma(self, ticker_data):
 
-        period_1 = 90
-        period_2 = 30
+        period_1 = 26
+        period_2 = 12
+        period_3 = 9
 
         # get the ticker data
         ticker = ticker_data['symbol'][1]   # grab ticker name
-        ticker_data['sma-90'] = ticker_data['close'].rolling(period_1).mean() # simple moving average
-        ticker_data['sma-30'] = ticker_data['close'].rolling(period_2).mean() # simple moving average
+        ticker_data['sma-26'] = ticker_data['close'].rolling(period_1).mean() # simple moving average
+        # ticker_data['sma-12'] = ticker_data['close'].rolling(period_2).mean() # simple moving average
+        ticker_data['signal'] = ticker_data['close'].rolling(period_3).mean() # simple moving average
 
         line_closing = go.Scatter(
             x = ticker_data.index, 
             y = ticker_data['close'], 
-            line = dict(color="red", width=2),
-            name = "price",
+            line = dict(color="red", width=1),
+            name = "closing price",
         )
-
         line_sma_1 = go.Scatter(
             x = ticker_data.index, 
-            y = ticker_data['sma-90'], 
+            y = ticker_data['sma-26'], 
             line = dict(color="green", width=2),
-            name = "sma-90",
+            name = "sma-26",
         )
-
-        line_sma_2 = go.Scatter(
+        # line_sma_2 = go.Scatter(
+        #     x = ticker_data.index, 
+        #     y = ticker_data['sma-12'], 
+        #     line = dict(color="blue", width=1),
+        #     name = "sma-12",
+        # )
+        line_signal = go.Scatter(
             x = ticker_data.index, 
-            y = ticker_data['sma-30'], 
+            y = ticker_data['signal'], 
             line = dict(color="blue", width=2),
-            name = "sma-30",
+            name = "signal",
         )
 
-        fig = go.Figure(data=[line_closing, line_sma_1, line_sma_2])
-        fig.update_layout(title=f"{ticker} Price x Simple Moving Average")
+        fig = go.Figure(data=[line_closing, line_sma_1, line_signal])
+        fig.update_layout(title=f"{ticker} Price x Simple Moving Averages")
         fig.show()
