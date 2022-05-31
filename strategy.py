@@ -79,6 +79,8 @@ class Strategy:
 
     
     def simple_mean_reversion_strategy(self, ticker_data):
+        """If MACD line crosses signal line from below, this is the signal to buy.
+        If MACD line crosses signal line from above, this is the signal to sell."""
 
         self.overall_strategy = self.macd_indicator(ticker_data)
 
