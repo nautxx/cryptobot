@@ -1,6 +1,5 @@
 import numpy as np  # pip install numpy
 import talib    # pip install TA-Lib
-from main import get_current_data
 import time
 
 
@@ -57,6 +56,16 @@ class Strategy:
 
         return self.rsi_strategy
 
+    
+    def macd_rsi_strategy(self, ticker_data):
+        """If MACD line crosses signal line from below and RSI value is in oversold region, this is a signal to buy.
+        If MACD line crosses signal line from above and RSI value is in overbought region, this is a signal to sell."""
+
+        if self.macd_indicator(ticker_data) != "WAIT":
+            self.overall_strategy = self.rsi_indicator(ticker_data)
+
+        return self.overall_strategy
+
 
     def percent_indicator(self, ticker_begin, ticker_end, percent_threshold=5):
         """Calculates percent increase/decrease and returns BUY, SELL, or WAIT."""
@@ -71,8 +80,9 @@ class Strategy:
 
         return self.percent_strategy
 
+
     def mean_reversion(self):
-        pass
+        """Mean reversion strategy tries to isolate noise from long term trends."""
 
 
     def arbitrage(self):
