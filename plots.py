@@ -21,7 +21,6 @@ class Plots:
             close = ticker_data['close'],
             name = ticker,
         )
-
         line = go.Scatter(
             x = ticker_data.index, 
             y = ticker_data[f'sma-{sma}'], 
