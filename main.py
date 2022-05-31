@@ -58,8 +58,11 @@ def trading_strategy(ticker_data):
     # initialize strategy object.
     strat = Strategy()
 
-    if strat.macd_indicator(ticker_data) != "WAIT":
-        strat.overall_strategy = strat.rsi_indicator(ticker_data, args.oversold_threshold, args.overbought_threshold)
+    if args.macd_rsi:
+        strat.macd_rsi_strategy(ticker_data)
+
+    # if strat.macd_indicator(ticker_data) != "WAIT":
+    #     strat.overall_strategy = strat.rsi_indicator(ticker_data, args.oversold_threshold, args.overbought_threshold)
    
     # oldest_ticker_data = get_current_data(user.ticker)
     # print(old_ticker_data)
@@ -189,6 +192,9 @@ if __name__ == '__main__':
     plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
     plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=20, type=int)
     plot.add_argument("--line_sma", "-line", action="store_true")
+
+    strategy = subparser.add_parser('strat')
+    strategy.add_argument("--macd_rsi", action="store_true")
 
     args = parser.parse_args()
 
