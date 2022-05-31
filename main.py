@@ -8,7 +8,7 @@ import logging
 from user import User
 from strategy import *
 from plots import *
-from paper import Paper
+from trade import Trade
 
 import ccxt # pip install ccxt
 import cbpro    # pip install cbpro
@@ -157,12 +157,12 @@ def trade_bot():
 
         if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
             print(f"🤖: Attempting to place {trade_strategy} order BOOOOOP...")
-
+            trade = Trade(user.ticker, trade_strategy, user.investment, user.holding_qty, args.paper)
+            
             if args.paper:
-                paper = Paper(user.ticker, trade_strategy, user.investment, user.holding_qty)
-                trade_success = paper.paper_trade()
+                trade_success = trade.paper()
             else:
-                trade_success = execute_trade(user.ticker, trade_strategy, user.investment, user.holding_qty)
+                trade_success = trade.execute()
             
             holding = not holding if trade_success else holding
 
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     parser.add_argument("--version", "-v", action="version", version="%(prog)s v0.1.0")
     parser.add_argument("--ticker", "-t", help="cryptocurrency ticker symbol. default=BTC-USDC", default="BTC-USDC", type=str)
     parser.add_argument("--cancel", "-x", help="cancel orders.", action="store_true")
-    parser.add_argument("--investment", "-usd", "-$", help="investment amount. default=10", default=10, type=int)
+    parser.add_argument("--investment", "-inv", "-$", help="investment amount. default=10", default=10, type=int)
     parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
     parser.add_argument("--paper", "-p", action="store_true")
 
@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
     strategy = subparser.add_parser('strat')
     strategy.add_argument("--basic", "-bsc", action="store_true")
-    strategy.add_argument("--mean_reversion_simple", "-mr_s", action="store_true")
+    strategy.add_argument("--mean_reversion_simple", "-mrs", action="store_true")
     strategy.add_argument("--mean_reversion", "-mr", action="store_true")
 
     args = parser.parse_args()
