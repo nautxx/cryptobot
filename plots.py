@@ -32,3 +32,39 @@ class Plots:
         fig = go.Figure(data=[candlestick, line])
         fig.update_layout(title=f"{ticker} Candlestick Chart")
         fig.show()
+
+    
+    def line_sma(self, ticker_data):
+
+        period_1 = 90
+        period_2 = 30
+
+        # get the ticker data
+        ticker = ticker_data['symbol'][1]   # grab ticker name
+        ticker_data['sma-90'] = ticker_data['close'].rolling(period_1).mean() # simple moving average
+        ticker_data['sma-30'] = ticker_data['close'].rolling(period_2).mean() # simple moving average
+
+        line_closing = go.Scatter(
+            x = ticker_data.index, 
+            y = ticker_data['close'], 
+            line = dict(color="red", width=2),
+            name = "price",
+        )
+
+        line_sma_1 = go.Scatter(
+            x = ticker_data.index, 
+            y = ticker_data['sma-90'], 
+            line = dict(color="green", width=2),
+            name = "sma-90",
+        )
+
+        line_sma_2 = go.Scatter(
+            x = ticker_data.index, 
+            y = ticker_data['sma-30'], 
+            line = dict(color="blue", width=2),
+            name = "sma-30",
+        )
+
+        fig = go.Figure(data=[line_closing, line_sma_1, line_sma_2])
+        fig.update_layout(title=f"{ticker} Price x Simple Moving Average")
+        fig.show()
