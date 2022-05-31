@@ -15,9 +15,17 @@ class Strategy:
 
     def macd_indicator(self, ticker_data):
         """Calculates MACD and returns BUY, SELL, or WAIT."""
+        fast_period = 12
+        slow_period = 26
+        signal_period = 9
 
-        # MACD = 12Period EMA − 26Period EMA
-        macd, macdsignal, macdhist = talib.MACD(ticker_data['close'], fastperiod=12, slowperiod=26, signalperiod=9)
+        # MACD = 12Day Exponential Moving Average − 26Day EMA
+        macd, macdsignal, macdhist = talib.MACD(
+            ticker_data['close'], 
+            fastperiod=fast_period, 
+            slowperiod=slow_period, 
+            signalperiod=signal_period
+        )
         
         last_macdhist = macdhist.iloc[-1]
         prev_macdhist = macdhist.iloc[-2]
@@ -35,9 +43,12 @@ class Strategy:
         return self.macd_strategy
 
 
-    def rsi_indicator(self, ticker_data, oversold_threshold=30, overbought_threshold=70):
+    def rsi_indicator(self, ticker_data):
         """Calculates RSI and returns BUY, SELL, or WAIT."""
         
+        oversold_threshold = 30
+        overbought_threshold = 70
+
         # RSI = 100 – [100 / (1 + (Mean Upward Price Change / Mean Downward Price Change))]
         rsi = talib.RSI(ticker_data['close'], timeperiod=14)
 
@@ -57,12 +68,19 @@ class Strategy:
         return self.rsi_strategy
 
     
-    def macd_rsi_strategy(self, ticker_data):
-        """If MACD line crosses signal line from below and RSI value is in oversold region, this is a signal to buy.
-        If MACD line crosses signal line from above and RSI value is in overbought region, this is a signal to sell."""
+    def mean_reversion_strategy(self, ticker_data):
+        """If MACD line crosses signal line from below and RSI value is in oversold region, this is the signal to buy.
+        If MACD line crosses signal line from above and RSI value is in overbought region, this is the signal to sell."""
 
         if self.macd_indicator(ticker_data) != "WAIT":
             self.overall_strategy = self.rsi_indicator(ticker_data)
+
+        return self.overall_strategy
+
+    
+    def simple_mean_reversion_strategy(self, ticker_data):
+
+        self.overall_strategy = self.macd_indicator(ticker_data)
 
         return self.overall_strategy
 
@@ -81,14 +99,10 @@ class Strategy:
         return self.perc_strategy
 
     
-    def percentage_strategy(self, ticker_begin, ticker_end, threshold):
+    def basic_strategy(self, ticker_begin, ticker_end, threshold):
         self.overall_strategy = self.percent_indicator(ticker_begin, ticker_end, threshold)
 
         return self.overall_strategy
-
-
-    def mean_reversion(self):
-        """Mean reversion strategy tries to isolate noise from long term trends."""
 
 
     def arbitrage(self):
