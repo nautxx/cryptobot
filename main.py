@@ -184,12 +184,12 @@ if __name__ == '__main__':
     plot = subparser.add_parser('plot')
     plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
     plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=26, type=int)
-    plot.add_argument("--line_sma", "-line", action="store_true")
+    plot.add_argument("--line_sma", "-line", help="plot line x sma x signal interactive chart.", action="store_true")
 
     strategy = subparser.add_parser('strat')
     strategy.add_argument("--basic", "-bsc", action="store_true")
-    strategy.add_argument("--mean_reversion", "-mr", action="store_true")
     strategy.add_argument("--mean_reversion_simple", "-mr_s", action="store_true")
+    strategy.add_argument("--mean_reversion", "-mr", action="store_true")
 
     args = parser.parse_args()
 
