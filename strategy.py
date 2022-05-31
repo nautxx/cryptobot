@@ -9,7 +9,7 @@ class Strategy:
     def __init__(self):
         self.macd_strategy = "WAIT"
         self.rsi_strategy = "WAIT"
-        self.percent_strategy = "WAIT"
+        self.perc_strategy = "WAIT"
         self.overall_strategy = "WAIT"
 
 
@@ -73,12 +73,18 @@ class Strategy:
         percent = ((float(ticker_end['price']) - float(ticker_begin['price'])) * 100 / float(ticker_begin['price']))
         
         if percent >= float(percent_threshold / 100):
-            self.percent_strategy = "SELL"
+            self.per_strategy = "SELL"
         
         if percent <= float(percent_threshold / -100):
-            self.percent_strategy = "BUY"
+            self.perc_strategy = "BUY"
 
-        return self.percent_strategy
+        return self.perc_strategy
+
+    
+    def percentage_strategy(self, ticker_begin, ticker_end, threshold):
+        self.overall_strategy = self.percent_indicator(ticker_begin, ticker_end, threshold)
+
+        return self.overall_strategy
 
 
     def mean_reversion(self):
