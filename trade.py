@@ -7,7 +7,7 @@ import cbpro    # pip install cbpro
 import base64
 import json
 
-class Paper:
+class Trade:
 
     # initialize APIs and objects
     API_KEY = os.environ.get("CBPROSAND_API_KEY")
