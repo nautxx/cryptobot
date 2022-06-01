@@ -77,11 +77,6 @@ def trading_strategy(ticker_data):
     return strat.overall_strategy
 
 
-def cancel_order(order_id):
-    cbpro_client.cancel_order(order_id=order_id)
-    return
-
-
 def plot_bot():
     """Main plot script."""
 
@@ -139,15 +134,15 @@ if __name__ == '__main__':
     parser.add_argument("--delay", "-d", help="delay in minutes. default=5", default=5, type=int)
     parser.add_argument("--paper", "-p", action="store_true")
 
-    plot = subparser.add_parser('plot')
-    plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
-    plot.add_argument("--line_sma", "-line", help="plot line x sma x signal interactive chart.", action="store_true")
-    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=26, type=int)
-
     strategy = subparser.add_parser('strat')
     strategy.add_argument("--basic", "-bsc", action="store_true")
     strategy.add_argument("--mean_reversion_simple", "-mrs", action="store_true")
     strategy.add_argument("--mean_reversion", "-mr", action="store_true")
+
+    plot = subparser.add_parser('plot')
+    plot.add_argument("--candlestick", "-candle", help="plot candlestick x sma interactive chart.", action="store_true")
+    plot.add_argument("--line_sma", "-line", help="plot line x sma x signal interactive chart.", action="store_true")
+    plot.add_argument("--sma_period", "-sma", help="simple moving average period.", default=26, type=int)
 
     args = parser.parse_args()
 
@@ -160,7 +155,7 @@ if __name__ == '__main__':
     )
 
     if args.cancel:
-        pass
+        trade.cancel_all_orders()
     if args.command == 'plot':
         plot_bot()
     if args.command == 'strat':
