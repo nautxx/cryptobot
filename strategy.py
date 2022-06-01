@@ -20,12 +20,10 @@ class Strategy:
         signal_period = 9
 
         # MACD = 12Day Exponential Moving Average − 26Day EMA
-        macd, macdsignal, macdhist = talib.MACD(
-            ticker_data['close'], 
-            fastperiod=fast_period, 
-            slowperiod=slow_period, 
-            signalperiod=signal_period
-        )
+        macd, macdsignal, macdhist = talib.MACD(ticker_data['close'],
+                                                fastperiod=fast_period, 
+                                                slowperiod=slow_period, 
+                                                signalperiod=signal_period)
         
         last_macdhist = macdhist.iloc[-1]
         prev_macdhist = macdhist.iloc[-2]
@@ -69,8 +67,10 @@ class Strategy:
 
     
     def mean_reversion_strategy(self, ticker_data):
-        """If MACD line crosses signal line from below and RSI value is in oversold region, this is the signal to buy.
-        If MACD line crosses signal line from above and RSI value is in overbought region, this is the signal to sell."""
+        """If MACD line crosses signal line from below and RSI value is in 
+        oversold region, this is the signal to buy. If MACD line crosses signal 
+        line from above and RSI value is in overbought region, this is the 
+        signal to sell."""
 
         if self.macd_indicator(ticker_data) != "WAIT":
             self.overall_strategy = self.rsi_indicator(ticker_data)
