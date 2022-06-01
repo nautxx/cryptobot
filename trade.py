@@ -130,3 +130,11 @@ class Trade:
             print("🤖: Order was not matched.")
 
         return self.order_success
+
+    
+    def cancel_all_orders(self):
+        auth_client = cbpro.AuthenticatedClient(
+            key=self.API_KEY, b64secret=self.b64_secret, passphrase=self.PASSPHRASE
+        )
+        auth_client.cancel_all(product_id=self.ticker)
+        return
