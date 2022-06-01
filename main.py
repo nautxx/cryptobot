@@ -76,51 +76,6 @@ def trading_strategy(ticker_data):
 
     return strat.overall_strategy
 
-#TODO move away execute_trade function from main.py
-def execute_trade(ticker, trade_strategy, investment, holding_qty):
-    """Takes the recommended strategy of BUY or SELL and executes trade with Coinbase Pro."""
-
-    order_success = False
-    side = "buy" if (trade_strategy == "BUY") else "sell"
-
-    try:
-        current_ticker_info_response = cbpro_client.get_product_ticker(product_id=ticker)
-    except:
-        print(f"\n🤖: Boooops. Something went wrong. Unable to place order.")
-
-    try:
-        current_price = float(current_ticker_info_response['price'])
-    except Exception as e:
-        print(f"🤖: Error obtaining ticker data. {e}")
-
-        order_size = round(investment / current_price, 5) if trade_strategy == "BUY" else holding_qty
-
-        print(f"🤖: Placing order {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}: "
-            f"{ticker}, {side}, {current_price}, {order_size}, {int(time.time() * 1000)}"
-        )
-
-    try:
-        order_response = auth_client.place_limit_order(product_id=ticker, side=side, price=current_price, size=order_size)
-    except Exception as e:
-        print(f"🤖: Error placing order. {e}")
-
-    try:
-        check = order_response["id"]
-        logging.info(check)
-        check_order = auth_client.get_order(order_id=check)
-    except Exception as e:
-        print(f"🤖: Unable to check order. {e}")
-
-    if check_order['status'] == "done":
-        print("🤖: Order has been placed successfully BOOPboopboop!")
-        print(check_order)
-        holding_qty = order_size if trade_strategy == "BUY" else holding_qty
-        order_success = True
-    else:
-        print("🤖: Order was not matched.")
-
-    return order_success
-
 
 def cancel_order(order_id):
     cbpro_client.cancel_order(order_id=order_id)
@@ -157,8 +112,9 @@ def trade_bot():
 
         if (trade_strategy == "BUY" and not holding) or (trade_strategy == "SELL" and holding):
             print(f"🤖: Attempting to place {trade_strategy} order BOOOOOP...")
-            trade = Trade(user.ticker, trade_strategy, user.investment, user.holding_qty, args.paper)
             
+            trade = Trade(user.ticker, trade_strategy, user.investment)
+
             if args.paper:
                 trade_success = trade.paper()
             else:
