@@ -57,12 +57,6 @@ class Plots:
             line = dict(color="green", width=2),
             name = "sma-26",
         )
-        # line_sma_2 = go.Scatter(
-        #     x = ticker_data.index, 
-        #     y = ticker_data['sma-12'], 
-        #     line = dict(color="blue", width=1),
-        #     name = "sma-12",
-        # )
         line_signal = go.Scatter(
             x = ticker_data.index, 
             y = ticker_data['signal'], 
