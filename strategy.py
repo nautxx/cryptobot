@@ -15,6 +15,7 @@ class Strategy:
 
     def macd_indicator(self, ticker_data):
         """Calculates MACD and returns BUY, SELL, or WAIT."""
+        
         fast_period = 12
         slow_period = 26
         signal_period = 9
