@@ -155,7 +155,7 @@ if __name__ == '__main__':
     )
 
     if args.cancel:
-        trade.cancel_all_orders()
+        pass
     if args.command == 'plot':
         plot_bot()
     if args.command == 'strat':
