@@ -78,7 +78,7 @@ def trading_strategy(ticker_data):
 
 
 def plot_bot():
-    """Main plot script."""
+    """Main plotting script."""
 
     # initialize Plot class.
     plot = Plots()
